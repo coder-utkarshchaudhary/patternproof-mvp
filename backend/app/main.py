@@ -40,3 +40,7 @@ app.include_router(ws.router)
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": settings.app_name}
+
+if __name__=="__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

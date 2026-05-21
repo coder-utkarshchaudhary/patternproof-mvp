@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Database
-    database_url: str = "postgresql+asyncpg://patternproof:patternproof@postgres:5432/patternproof"
+    database_url: str = "postgresql+asyncpg://patternproof:patternproof@localhost:5432/patternproof"
 
     # Redis
     redis_url: str = "redis://redis:6379/0"
