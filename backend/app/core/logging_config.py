@@ -1,45 +1,32 @@
-"""Centralised logging configuration for both the FastAPI process and the Celery worker.
+"""
+Centralised logging utility.
 
-Call ``configure_logging()`` once at process startup. All loggers created with
-``logging.getLogger(__name__)`` across the codebase will then emit structured
-lines to stdout in the format:
+All modules should use:
+    from utils.logger import get_logger
+    logger = get_logger(__name__)
 
-    2026-05-22T10:30:45 [INFO ] app.agents.crawler_agent | Crawler persisted 5 pages for audit 3
+Logs are written to both stdout and a global log.log file.
 """
 
 import logging
 import sys
+from typing import Optional
+
+_LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-class _LevelPad(logging.Formatter):
-    """Formatter that left-pads the level name to 8 chars so columns line up."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        record.levelname = record.levelname.ljust(8)
-        return super().format(record)
-
-
-def configure_logging(debug: bool = False) -> None:
-    level = logging.DEBUG if debug else logging.INFO
-
-    fmt = "%(asctime)s [%(levelname)s] %(name)s | %(message)s"
-    datefmt = "%Y-%m-%dT%H:%M:%S"
-    formatter = _LevelPad(fmt=fmt, datefmt=datefmt)
-
+def _build_stream_handler() -> logging.StreamHandler:
+    """Create a stream handler for stdout logging."""
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
+    handler.setFormatter(logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT))
+    return handler
 
-    root = logging.getLogger()
-    # Remove any handlers added by third-party code before us (e.g. basicConfig).
-    root.handlers.clear()
-    root.addHandler(handler)
-    root.setLevel(level)
 
-    # Silence chatty libraries that aren't useful at INFO.
-    _quiet = [
-        "httpx", "httpcore", "urllib3", "apify_client",
-        "apify", "playwright", "websockets", "asyncio",
-        "hpack", "h2",
-    ]
-    for name in _quiet:
-        logging.getLogger(name).setLevel(logging.WARNING)
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    logger = logging.getLogger(name or "outsource_ai")
+    if not logger.handlers:
+        logger.addHandler(_build_stream_handler())
+    logger.setLevel(getattr(logging, "INFO", logging.DEBUG))
+    logger.propagate = False
+    return logger

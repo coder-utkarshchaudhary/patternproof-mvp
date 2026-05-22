@@ -18,10 +18,11 @@ from PIL import Image
 
 from app.agents.state import DetectedFinding, PageContext
 from app.core.config import settings
+from app.core.logging_config import get_logger
 from app.models.taxonomy import DPType, category_for, ccpa_for
 from app.services import llm, storage
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 VALID_TYPES = {t.value for t in DPType}
 

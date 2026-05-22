@@ -5,7 +5,6 @@ detected pattern types, renders a PDF, uploads it to Supabase Storage, and
 persists the report row.
 """
 
-import logging
 import time
 
 from app.agents.state import AuditState
@@ -14,8 +13,9 @@ from app.models.taxonomy import AuditStatus
 from app.services import exa_client, storage
 from app.services.pdf_generator import generate_pdf_bytes
 from app.services.report_builder import ReportBuilder
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def report_node(state: AuditState) -> dict:

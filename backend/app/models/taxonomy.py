@@ -15,7 +15,6 @@ without enum migrations.
 
 from enum import Enum
 
-
 class AuditStatus(str, Enum):
     QUEUED = "queued"
     PLANNING = "planning"

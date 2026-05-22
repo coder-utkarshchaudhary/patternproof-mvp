@@ -6,26 +6,23 @@ when an audit starts and when it finishes.
 
 from __future__ import annotations
 
-import logging
 from functools import lru_cache
 from typing import Any
 
 from app.core.config import settings
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
-
+logger = get_logger(__name__)
 
 @lru_cache(maxsize=1)
 def _slack():
     from slack_sdk import WebClient
-
     return WebClient(token=settings.slack_bot_token)
 
 
 @lru_cache(maxsize=1)
 def _twilio():
     from twilio.rest import Client
-
     return Client(settings.twilio_account_sid, settings.twilio_auth_token)
 
 

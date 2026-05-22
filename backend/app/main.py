@@ -1,14 +1,11 @@
-import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import audits, reports, ws
 from app.core.config import settings
-from app.core.logging_config import configure_logging
+from app.core.logging_config import get_logger
 
-configure_logging(debug=settings.debug)
-logger = logging.getLogger(__name__)
+logger = get_logger(name=__name__)
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 
@@ -37,5 +34,4 @@ def health():
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

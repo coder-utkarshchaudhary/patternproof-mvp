@@ -6,15 +6,14 @@ Pages whose analysis raised are flagged ``analysis_ok=False`` so the manager can
 schedule a feedback pass.
 """
 
-import logging
 import time
 
 from app.agents.ephemeral import semantic_subagent, visual_subagent
 from app.agents.state import AuditState, DetectedFinding, PageContext
 from app.db import repo
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
-
+logger = get_logger(__name__)
 
 def _dedupe(findings: list[DetectedFinding]) -> list[DetectedFinding]:
     seen: set[tuple] = set()

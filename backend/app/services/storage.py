@@ -6,12 +6,11 @@ content to clients via :func:`signed_url`.
 
 from __future__ import annotations
 
-import logging
-
 from app.core.config import settings
+from app.core.logging_config import get_logger
 from app.core.supabase import get_client
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Default validity for signed URLs (1 week, in seconds).
 SIGNED_URL_TTL = 60 * 60 * 24 * 7

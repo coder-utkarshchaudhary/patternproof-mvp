@@ -7,12 +7,12 @@ cite in the PDF report.
 
 from __future__ import annotations
 
-import logging
 from functools import lru_cache
 
 from app.core.config import settings
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @lru_cache(maxsize=1)

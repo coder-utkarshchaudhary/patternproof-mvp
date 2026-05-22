@@ -1,11 +1,10 @@
 """Report builder — aggregates findings, scores, and generates the summary."""
 
-import logging
-
 from app.agents.state import DetectedFinding
 from app.services import llm
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SUMMARY_SYSTEM = """You are writing the executive summary of a dark-pattern audit report used to \
 certify a website's compliance with India's DPDP Act and the CCPA 2023 dark-pattern guidelines.

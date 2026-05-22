@@ -2,12 +2,12 @@
 
 import base64
 import html as html_lib
-import logging
 
 from app.agents.state import DetectedFinding
 from app.services import storage
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 REPORT_HTML_TEMPLATE = """<!DOCTYPE html>
 <html>

@@ -7,15 +7,14 @@ analyze, Claude decides whether a re-analysis pass is worthwhile (bounded by
 Routes one of: plan | crawl | static_analysis | report | complete.
 """
 
-import logging
-
 from app.agents.state import AuditState
 from app.core.config import settings
+from app.core.logging_config import get_logger
 from app.db import repo
 from app.models.taxonomy import AuditStatus
 from app.services import llm
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 FEEDBACK_SYSTEM = """You supervise a dark-pattern audit. Some pages failed automated analysis.
 Decide whether one more analysis pass is worthwhile given the retry budget.

@@ -12,15 +12,15 @@ from __future__ import annotations
 import base64
 import json
 import requests
-import logging
 from functools import lru_cache
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @lru_cache(maxsize=1)

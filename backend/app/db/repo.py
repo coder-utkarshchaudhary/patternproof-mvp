@@ -13,7 +13,6 @@ from typing import Any
 from app.core.supabase import get_client
 from app.models.taxonomy import AuditStatus
 
-
 # ── Audits ──────────────────────────────────────────────────────────────────
 
 def create_audit(url: str) -> dict[str, Any]:

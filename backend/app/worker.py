@@ -5,10 +5,9 @@ from datetime import datetime, timezone
 from celery import Celery
 
 from app.core.config import settings
-from app.core.logging_config import configure_logging
+from app.core.logging_config import get_logger
 
-configure_logging(debug=settings.debug)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 celery_app = Celery("pattern_proof", broker=settings.redis_url)
 celery_app.conf.update(
@@ -29,7 +28,6 @@ def run_audit(audit_id: int) -> None:
     ticket archiving, and error handling. Per-stage work is driven by the
     LangGraph pipeline.
     """
-    # Lazy imports keep the API process lean.
     from app.agents.runner import run_pipeline
     from app.db import repo
     from app.models.taxonomy import AuditStatus
@@ -45,6 +43,7 @@ def run_audit(audit_id: int) -> None:
 
     logger.info("Audit %s: URL=%s, status=%s", audit_id, audit["url"], audit["status"])
     notify.notify_started(audit)
+    logger.info("Notification for audit start has been sent. Check slack and whatsapp.")
 
     try:
         run_pipeline(audit_id)
@@ -60,6 +59,7 @@ def run_audit(audit_id: int) -> None:
         fresh = repo.get_audit(audit_id) or audit
         notify.notify_completed(fresh)
         logger.info("=== Audit %s: COMPLETED in %.1fs ===", audit_id, elapsed)
+        logger.info("Notification for audit complete has been sent. Check slack and whatsapp.")
 
     except Exception as e:  # noqa: BLE001
         elapsed = time.monotonic() - t0

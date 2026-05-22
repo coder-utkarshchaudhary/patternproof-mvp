@@ -5,14 +5,13 @@ signup, cart, cancellation). Tickets are persisted to both the ``tickets`` table
 (for live visibility in Supabase) and the ``agent_memory`` document store.
 """
 
-import logging
-
 from app.agents.state import AuditState, Ticket
 from app.db import repo
 from app.models.taxonomy import AuditStatus
 from app.services import llm
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 PLANNER_SYSTEM = """You are the Planner in a dark-pattern audit system that certifies websites \
 for compliance with India's DPDP Act and the CCPA 2023 dark-pattern guidelines.

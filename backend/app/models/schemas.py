@@ -1,20 +1,14 @@
 from datetime import datetime
-
 from pydantic import BaseModel, HttpUrl
-
 from app.models.taxonomy import AuditStatus, CCPAPattern, DPCategory, DPType, Severity
 
-
 # ── Audit ────────────────────────────────────────────────────────────────
-
 class AuditCreate(BaseModel):
     url: HttpUrl
-
 
 class AuditProgress(BaseModel):
     status: AuditStatus
     progress_message: str | None = None
-
 
 class AuditPageOut(BaseModel):
     id: int
@@ -23,7 +17,6 @@ class AuditPageOut(BaseModel):
     screenshot_path: str | None = None
 
     model_config = {"from_attributes": True}
-
 
 class AuditOut(BaseModel):
     id: int
@@ -35,7 +28,6 @@ class AuditOut(BaseModel):
     error_message: str | None = None
 
     model_config = {"from_attributes": True}
-
 
 class AuditDetail(AuditOut):
     pages: list[AuditPageOut] = []

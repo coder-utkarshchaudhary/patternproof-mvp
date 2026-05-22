@@ -11,7 +11,6 @@ Returns a list of normalized page dicts:
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import httpx
@@ -24,9 +23,9 @@ from tenacity import (
 )
 
 from app.core.config import settings
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
-
+logger = get_logger(__name__)
 
 class CrawlError(RuntimeError):
     pass
@@ -40,7 +39,7 @@ def _build_actor_input(start_url: str) -> dict[str, Any]:
         # Compliance: obey the site's robots.txt.
         "respectRobotsTxtFile": True,
         # Use a real browser so we get rendered HTML + screenshots.
-        "crawlerType": "playwright:chromium",
+        "crawlerType": "playwright:firefox",
         "saveHtml": True,
         "saveScreenshots": True,
         "readableTextCharThreshold": 100,

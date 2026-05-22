@@ -6,7 +6,6 @@ from app.services import storage
 
 router = APIRouter(tags=["reports"])
 
-
 @router.get("/audits/{audit_id}/findings", response_model=list[FindingOut])
 def list_findings(audit_id: int):
     return repo.list_findings(audit_id)

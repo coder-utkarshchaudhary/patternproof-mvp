@@ -12,8 +12,9 @@ from app.agents.state import AuditState, PageContext
 from app.db import repo
 from app.models.taxonomy import AuditStatus
 from app.services import apify_client, storage
+from app.core.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def crawler_node(state: AuditState) -> dict:
