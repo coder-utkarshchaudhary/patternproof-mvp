@@ -1,32 +1,20 @@
-from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import audits, reports, ws
 from app.core.config import settings
-from app.core.database import engine
-from app.models.database import Base
+from app.core.logging_config import configure_logging
 
+configure_logging(debug=settings.debug)
+logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Create tables on startup (use Alembic in production)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    await engine.dispose()
-
-
-app = FastAPI(
-    title=settings.app_name,
-    version="0.1.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title=settings.app_name, version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[settings.frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,10 +25,17 @@ app.include_router(reports.router, prefix="/api")
 app.include_router(ws.router)
 
 
+@app.on_event("startup")
+def _startup() -> None:
+    logger.info("Pattern Proof API starting up (debug=%s)", settings.debug)
+
+
 @app.get("/health")
-async def health():
+def health():
     return {"status": "ok", "service": settings.app_name}
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

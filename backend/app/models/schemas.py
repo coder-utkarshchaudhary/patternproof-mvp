@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, HttpUrl
 
-from app.models.database import AuditStatus, DPCategory, DPType, Severity
+from app.models.taxonomy import AuditStatus, CCPAPattern, DPCategory, DPType, Severity
 
 
 # ── Audit ────────────────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ class FindingOut(BaseModel):
     page_id: int | None = None
     category: DPCategory
     dp_type: DPType
+    ccpa_pattern: CCPAPattern | None = None
     severity: Severity
     title: str
     description: str
@@ -55,12 +56,19 @@ class FindingOut(BaseModel):
     evidence_screenshot_path: str | None = None
     bounding_box: dict | None = None
     confidence_score: float | None = None
-    is_dynamic: bool
+    is_dynamic: bool = False
+    page_url: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 # ── Report ───────────────────────────────────────────────────────────────
+
+class ReportReference(BaseModel):
+    title: str
+    url: str
+    snippet: str | None = None
+
 
 class ReportOut(BaseModel):
     id: int
@@ -68,6 +76,7 @@ class ReportOut(BaseModel):
     summary: str
     score: int
     pdf_path: str | None = None
+    references: list[ReportReference] = []
     generated_at: datetime
     findings: list[FindingOut] = []
 

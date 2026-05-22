@@ -1,45 +1,35 @@
 services:
-  # ── Backend (FastAPI) ─────────────────────────────────────────────────
+  # ── Backend (FastAPI) ───────────────────────────────────────────────────
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - artifacts:/data/artifacts
+    env_file: .env
     environment:
-      PP_DATABASE_URL: postgresql+asyncpg://patternproof:patternproof@postgres:5432/patternproof
       PP_REDIS_URL: redis://redis:6379/0
-      PP_OLLAMA_BASE_URL: http://ollama:11434
       PP_ML_INFERENCE_URL: http://ml-inference:8001
-      PP_STORAGE_DIR: /data/artifacts
-      PP_DEBUG: "true"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
 
-  # ── Celery Worker ─────────────────────────────────────────────────────
+  # ── Celery Worker (runs the agent pipeline) ─────────────────────────────
   worker:
     build: ./backend
-    command: celery -A app.worker worker --loglevel=info
+    command: celery -A app.worker worker --loglevel=info --concurrency=2
     volumes:
       - ./backend:/app
-      - artifacts:/data/artifacts
+    env_file: .env
     environment:
-      PP_DATABASE_URL: postgresql+asyncpg://patternproof:patternproof@postgres:5432/patternproof
       PP_REDIS_URL: redis://redis:6379/0
-      PP_OLLAMA_BASE_URL: http://ollama:11434
       PP_ML_INFERENCE_URL: http://ml-inference:8001
-      PP_STORAGE_DIR: /data/artifacts
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
+    # ml-inference is contacted via HTTP at runtime only — not a hard startup dep.
 
-  # ── Frontend (Next.js) ────────────────────────────────────────────────
+  # ── Frontend (Next.js) ──────────────────────────────────────────────────
   frontend:
     build: ./frontend
     ports:
@@ -49,46 +39,16 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
 
-  # ── ML Inference Service ──────────────────────────────────────────────
+  # ── ML Inference Service (YOLO) ─────────────────────────────────────────
   ml-inference:
-    build: ./ml
+    build: ./ml/app
     ports:
       - "8001:8001"
     volumes:
       - ./ml:/app
 
-  # ── PostgreSQL ────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: patternproof
-      POSTGRES_PASSWORD: patternproof
-      POSTGRES_DB: patternproof
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U patternproof"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # ── Redis ─────────────────────────────────────────────────────────────
+  # ── Redis (Celery broker) ───────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-
-  # ── Ollama (LLM serving) ──────────────────────────────────────────────
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
-volumes:
-  pgdata:
-  artifacts:
-  ollama_data:

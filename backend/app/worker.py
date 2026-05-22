@@ -1,6 +1,14 @@
+import logging
+import time
+from datetime import datetime, timezone
+
 from celery import Celery
 
 from app.core.config import settings
+from app.core.logging_config import configure_logging
+
+configure_logging(debug=settings.debug)
+logger = logging.getLogger(__name__)
 
 celery_app = Celery("pattern_proof", broker=settings.redis_url)
 celery_app.conf.update(
@@ -9,18 +17,67 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    task_track_started=True,
 )
 
 
 @celery_app.task(name="run_audit")
-def run_audit(audit_id: int):
+def run_audit(audit_id: int) -> None:
     """Orchestrate a full dark-pattern audit pipeline.
 
-    Steps:
-      1. Crawl the website (collect pages, screenshots, HTML)
-      2. Run the LangGraph agent system (static + dynamic DP detection)
-      3. Build and persist the report
-      4. Mark audit as completed
+    Owns the top-level lifecycle: start/finish notifications, terminal status,
+    ticket archiving, and error handling. Per-stage work is driven by the
+    LangGraph pipeline.
     """
-    # TODO: implement in Phase 6
-    pass
+    # Lazy imports keep the API process lean.
+    from app.agents.runner import run_pipeline
+    from app.db import repo
+    from app.models.taxonomy import AuditStatus
+    from app.services import notify
+
+    logger.info("=== Audit %s: task picked up by worker ===", audit_id)
+    t0 = time.monotonic()
+
+    audit = repo.get_audit(audit_id)
+    if not audit:
+        logger.error("run_audit: audit %s not found — aborting", audit_id)
+        return
+
+    logger.info("Audit %s: URL=%s, status=%s", audit_id, audit["url"], audit["status"])
+    notify.notify_started(audit)
+
+    try:
+        run_pipeline(audit_id)
+
+        elapsed = time.monotonic() - t0
+        repo.update_audit_status(
+            audit_id,
+            AuditStatus.COMPLETED,
+            progress_message="Audit complete",
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
+        _archive_tickets(repo, audit_id, final_status="completed")
+        fresh = repo.get_audit(audit_id) or audit
+        notify.notify_completed(fresh)
+        logger.info("=== Audit %s: COMPLETED in %.1fs ===", audit_id, elapsed)
+
+    except Exception as e:  # noqa: BLE001
+        elapsed = time.monotonic() - t0
+        logger.exception("=== Audit %s: FAILED after %.1fs — %s ===", audit_id, elapsed, e)
+        repo.update_audit_status(
+            audit_id,
+            AuditStatus.FAILED,
+            progress_message="Audit failed",
+            error_message=str(e)[:500],
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
+        _archive_tickets(repo, audit_id, final_status="failed", result={"error": str(e)[:500]})
+
+
+def _archive_tickets(repo, audit_id: int, *, final_status: str, result: dict | None = None) -> None:
+    """Move all active tickets for this audit into ticket_archive."""
+    try:
+        repo.archive_tickets(audit_id, final_status=final_status, result=result or {})
+        logger.info("Audit %s: tickets archived with status=%s", audit_id, final_status)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Audit %s: failed to archive tickets — %s", audit_id, e)

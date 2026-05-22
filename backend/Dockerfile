@@ -1,8 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.10.12-slim
 
 WORKDIR /app
 
-# System deps for weasyprint + playwright
+# System deps for weasyprint (Pango/Cairo)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpango-1.0-0 \
@@ -14,9 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml .
 RUN pip install --no-cache-dir -e ".[dev]"
-
-# Install Playwright browsers
-RUN playwright install --with-deps chromium
 
 COPY . .
 

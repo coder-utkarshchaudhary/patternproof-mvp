@@ -1,44 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+import logging
 
-from app.core.database import get_db
-from app.models.database import Audit, AuditStatus
+from fastapi import APIRouter, HTTPException
+
+from app.db import repo
 from app.models.schemas import AuditCreate, AuditDetail, AuditOut
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["audits"])
 
 
 @router.post("/audits", response_model=AuditOut, status_code=201)
-async def create_audit(body: AuditCreate, db: AsyncSession = Depends(get_db)):
-    audit = Audit(url=str(body.url), status=AuditStatus.QUEUED)
-    db.add(audit)
-    await db.commit()
-    await db.refresh(audit)
+def create_audit(body: AuditCreate):
+    audit = repo.create_audit(str(body.url))
+    audit_id = audit["id"]
+    logger.info("Audit %s created for URL=%s — enqueueing pipeline task", audit_id, body.url)
 
-    # TODO: enqueue Celery task – run_audit.delay(audit.id)
+    # Enqueue the pipeline. Imported lazily so the API process doesn't need the
+    # full agent/ML dependency graph just to schedule a task.
+    from app.worker import run_audit
+
+    task = run_audit.delay(audit_id)
+    logger.info("Audit %s enqueued — celery task_id=%s", audit_id, task.id)
     return audit
 
 
 @router.get("/audits", response_model=list[AuditOut])
-async def list_audits(
-    limit: int = 20,
-    offset: int = 0,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Audit).order_by(Audit.created_at.desc()).limit(limit).offset(offset)
-    )
-    return result.scalars().all()
+def list_audits(limit: int = 20, offset: int = 0):
+    return repo.list_audits(limit=limit, offset=offset)
 
 
 @router.get("/audits/{audit_id}", response_model=AuditDetail)
-async def get_audit(audit_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Audit).where(Audit.id == audit_id).options(selectinload(Audit.pages))
-    )
-    audit = result.scalar_one_or_none()
+def get_audit(audit_id: int):
+    audit = repo.get_audit(audit_id)
     if not audit:
         raise HTTPException(status_code=404, detail="Audit not found")
-    return audit
+    return {**audit, "pages": repo.list_pages(audit_id)}

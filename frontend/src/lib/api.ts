@@ -15,14 +15,22 @@ export interface Finding {
   page_id: number | null;
   category: string;
   dp_type: string;
+  ccpa_pattern: string | null;
   severity: string;
   title: string;
   description: string;
   explanation: string | null;
   evidence_screenshot_path: string | null;
+  page_url: string | null;
   bounding_box: Record<string, number> | null;
   confidence_score: number | null;
   is_dynamic: boolean;
+}
+
+export interface ReportReference {
+  title: string;
+  url: string;
+  snippet: string | null;
 }
 
 export interface Report {
@@ -31,6 +39,7 @@ export interface Report {
   summary: string;
   score: number;
   pdf_path: string | null;
+  references: ReportReference[];
   generated_at: string;
   findings: Finding[];
 }
@@ -62,4 +71,8 @@ export function getAudit(id: number): Promise<Audit> {
 
 export function getReport(auditId: number): Promise<Report> {
   return apiFetch(`/api/audits/${auditId}/report`);
+}
+
+export function reportPdfUrl(auditId: number): string {
+  return `${API_BASE}/api/audits/${auditId}/report/pdf`;
 }

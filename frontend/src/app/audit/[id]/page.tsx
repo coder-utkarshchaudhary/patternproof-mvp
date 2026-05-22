@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getAudit, getReport, type Audit, type Report } from "@/lib/api";
+import { getAudit, getReport, reportPdfUrl, type Audit, type Report } from "@/lib/api";
 
 export default function AuditPage() {
   const params = useParams();
@@ -76,15 +76,25 @@ export default function AuditPage() {
         <div>
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold">Report</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-4xl font-extrabold text-indigo-400">
-                {report.score}
-              </span>
-              <span className="text-sm text-zinc-400">/ 100</span>
+            <div className="flex items-center gap-4">
+              <a
+                href={reportPdfUrl(audit.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-indigo-600 px-3 py-1.5 text-sm font-medium text-indigo-300 hover:bg-indigo-950"
+              >
+                Download PDF
+              </a>
+              <div className="flex items-center gap-2">
+                <span className="text-4xl font-extrabold text-indigo-400">
+                  {report.score}
+                </span>
+                <span className="text-sm text-zinc-400">/ 100</span>
+              </div>
             </div>
           </div>
 
-          <p className="mb-6 text-zinc-300">{report.summary}</p>
+          <p className="mb-6 whitespace-pre-line text-zinc-300">{report.summary}</p>
 
           <h3 className="mb-4 text-xl font-semibold">
             Findings ({report.findings.length})
@@ -102,13 +112,41 @@ export default function AuditPage() {
                     {f.category} / {f.dp_type}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-300">{f.description}</p>
+                {f.ccpa_pattern && (
+                  <p className="mb-1 text-xs font-medium text-indigo-300">
+                    CCPA pattern: {f.ccpa_pattern.replace(/_/g, " ")}
+                  </p>
+                )}
+                <p className="whitespace-pre-line text-sm text-zinc-300">{f.description}</p>
                 {f.explanation && (
                   <p className="mt-2 text-sm text-zinc-400">{f.explanation}</p>
+                )}
+                {f.page_url && (
+                  <p className="mt-2 break-all text-xs text-zinc-600">{f.page_url}</p>
                 )}
               </div>
             ))}
           </div>
+
+          {report.references.length > 0 && (
+            <div className="mt-8">
+              <h3 className="mb-3 text-xl font-semibold">References</h3>
+              <ul className="space-y-2">
+                {report.references.map((r) => (
+                  <li key={r.url} className="text-sm">
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-400 hover:underline"
+                    >
+                      {r.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
