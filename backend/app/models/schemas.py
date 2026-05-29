@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from pydantic import BaseModel, HttpUrl
 from app.models.taxonomy import AuditStatus, CCPAPattern, DPCategory, DPType, Severity
 
@@ -60,6 +61,30 @@ class ReportReference(BaseModel):
     title: str
     url: str
     snippet: str | None = None
+
+
+# ── Jobs (key-based orchestration) ───────────────────────────────────────
+
+class JobCreateOut(BaseModel):
+    job_key: str
+    url: str
+    status: Literal["processing"] = "processing"
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class JobStatusOut(BaseModel):
+    job_key: str
+    url: str
+    status: Literal["processing", "done", "failed"]
+    progress_message: str | None = None
+    error_message: str | None = None
+    summary_md: str = ""
+    created_at: datetime
+    completed_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
 
 
 class ReportOut(BaseModel):

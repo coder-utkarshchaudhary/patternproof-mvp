@@ -32,6 +32,7 @@ def manager_node(state: AuditState) -> dict:
         logger.warning(
             "Audit %s: hit max_iterations=%d — forcing report", state.audit_id, state.max_iterations
         )
+        _log_progress(state.audit_id, state.iteration_count, "report", f"Reached iteration limit ({state.max_iterations}) — forcing report generation")
         return {"next_action": "report", "iteration_count": state.iteration_count + 1}
 
     base = {"iteration_count": state.iteration_count + 1, "next_action": "manager"}
@@ -39,11 +40,13 @@ def manager_node(state: AuditState) -> dict:
     # 1. Plan first.
     if not state.tickets:
         logger.info("Audit %s: manager → plan (no tickets yet)", state.audit_id)
+        _log_progress(state.audit_id, state.iteration_count, "plan", "Starting audit planning — determining inspection scope")
         return {**base, "next_action": "plan"}
 
     # 2. Crawl if nothing has been fetched yet.
     if not state.visited_pages and not state.pending_pages:
         logger.info("Audit %s: manager → crawl (no pages fetched yet)", state.audit_id)
+        _log_progress(state.audit_id, state.iteration_count, "crawl", f"Plan ready ({len(state.tickets)} task(s)) — initiating page crawl")
         return {**base, "next_action": "crawl"}
 
     # 3. Analyze any pending pages.
@@ -52,6 +55,7 @@ def manager_node(state: AuditState) -> dict:
             "Audit %s: manager → static_analysis (%d pages pending)",
             state.audit_id, len(state.pending_pages),
         )
+        _log_progress(state.audit_id, state.iteration_count, "static_analysis", f"Crawl complete — analyzing {len(state.pending_pages)} page(s) for dark patterns")
         repo.update_audit_status(
             state.audit_id, AuditStatus.ANALYZING, progress_message="Analyzing pages for dark patterns…"
         )
@@ -67,6 +71,7 @@ def manager_node(state: AuditState) -> dict:
         )
         if _should_retry(state, len(failed)):
             logger.info("Audit %s: manager → static_analysis (feedback pass %d)", state.audit_id, state.feedback_count + 1)
+            _log_progress(state.audit_id, state.iteration_count, "static_analysis", f"Re-analyzing {len(failed)} failed page(s) (retry pass {state.feedback_count + 1})")
             for p in failed:
                 p.analysis_ok = True
             return {
@@ -83,7 +88,20 @@ def manager_node(state: AuditState) -> dict:
         "Audit %s: manager → report (all done — visited=%d findings=%d)",
         state.audit_id, len(state.visited_pages), len(state.findings),
     )
+    _log_progress(state.audit_id, state.iteration_count, "report", f"Analysis complete — {len(state.visited_pages)} page(s), {len(state.findings)} finding(s) — generating report")
     return {**base, "next_action": "report"}
+
+
+def _log_progress(audit_id: int, iteration: int, action: str, message: str) -> None:
+    try:
+        repo.add_memory(
+            audit_id,
+            agent="manager",
+            kind="progress_log",
+            payload={"iteration": iteration, "action": action, "message": message},
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Audit %s: failed to persist progress log — %s", audit_id, e)
 
 
 def _should_retry(state: AuditState, n_failed: int) -> bool:

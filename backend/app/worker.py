@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone
 
 from celery import Celery
+from celery.exceptions import SoftTimeLimitExceeded
 
 from app.core.config import settings
 from app.core.logging_config import get_logger
@@ -20,7 +21,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(name="run_audit")
+@celery_app.task(name="run_audit", soft_time_limit=1800, time_limit=1860)
 def run_audit(audit_id: int) -> None:
     """Orchestrate a full dark-pattern audit pipeline.
 
@@ -60,6 +61,18 @@ def run_audit(audit_id: int) -> None:
         notify.notify_completed(fresh)
         logger.info("=== Audit %s: COMPLETED in %.1fs ===", audit_id, elapsed)
         logger.info("Notification for audit complete has been sent. Check slack and whatsapp.")
+
+    except SoftTimeLimitExceeded:
+        elapsed = time.monotonic() - t0
+        logger.error("=== Audit %s: TIMED OUT after %.1fs (30-minute limit reached) ===", audit_id, elapsed)
+        repo.update_audit_status(
+            audit_id,
+            AuditStatus.FAILED,
+            progress_message="Audit timed out",
+            error_message="Job exceeded the 30-minute time limit and was terminated.",
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        )
+        _archive_tickets(repo, audit_id, final_status="failed", result={"error": "timeout"})
 
     except Exception as e:  # noqa: BLE001
         elapsed = time.monotonic() - t0

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import audits, reports, ws
+from app.api import audits, dev, jobs, reports, ws
 from app.core.config import settings
 from app.core.logging_config import get_logger
 
@@ -18,7 +18,9 @@ app.add_middleware(
 )
 
 app.include_router(audits.router, prefix="/api")
+app.include_router(jobs.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(dev.router, prefix="/api")
 app.include_router(ws.router)
 
 

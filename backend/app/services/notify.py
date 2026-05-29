@@ -8,17 +8,18 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Any
+import json
 
 from app.core.config import settings
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+# TODO: Fix slack integration error
 @lru_cache(maxsize=1)
 def _slack():
     from slack_sdk import WebClient
     return WebClient(token=settings.slack_bot_token)
-
 
 @lru_cache(maxsize=1)
 def _twilio():
@@ -40,9 +41,10 @@ def _send_whatsapp(text: str) -> None:
         return
     try:
         _twilio().messages.create(
-            body=text,
             from_=settings.twilio_whatsapp_from,
             to=settings.notify_whatsapp_to,
+            content_sid="HXb5b62575e6e4ff6129ad7c8efe1f983e",
+            content_variables=json.dumps({"1": "Audit completed.", "2": text})
         )
     except Exception as e:  # noqa: BLE001
         logger.warning("WhatsApp notify failed: %s", e)

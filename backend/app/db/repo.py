@@ -183,6 +183,17 @@ def archive_tickets(audit_id: int, *, final_status: str, result: dict[str, Any] 
     get_client().table("tickets").delete().in_("id", ids).execute()
 
 
+# ── Dev utilities ────────────────────────────────────────────────────────────────
+
+def reset_dev_data() -> None:
+    """Truncate all audit tables and restart their identity sequences.
+
+    Calls the ``reset_dev_data()`` Postgres function (migration 0003).
+    Only safe to call in debug/dev environments.
+    """
+    get_client().rpc("reset_dev_data", {}).execute()
+
+
 # ── Agent memory (JSONB document store) ──────────────────────────────────────────
 
 def add_memory(audit_id: int, agent: str, kind: str, payload: dict[str, Any]) -> dict[str, Any]:

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
 
+from app.core.dispatch import dispatch_audit
+from app.core.logging_config import get_logger
 from app.db import repo
 from app.models.schemas import AuditCreate, AuditDetail, AuditOut
-from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["audits"])
@@ -11,12 +12,8 @@ router = APIRouter(tags=["audits"])
 def create_audit(body: AuditCreate):
     audit = repo.create_audit(str(body.url))
     audit_id = audit["id"]
-    logger.info("Audit %s created for URL=%s — enqueueing pipeline task", audit_id, body.url)
-
-    from app.worker import run_audit
-
-    task = run_audit(audit_id)
-    logger.info("Audit %s enqueued — celery task_id=%s", audit_id, task.id)
+    logger.info("Audit %s created for URL=%s — dispatching pipeline", audit_id, body.url)
+    dispatch_audit(audit_id)
     return audit
 
 

@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # ── Public base URL (for building report links in notifications) ─────
     public_base_url: str = "http://localhost:8000"
 
+    # ── Dev / testing ────────────────────────────────────────────────────
+    # When True, pipeline runs immediately in a background thread instead of
+    # being dispatched to the Celery broker. No Redis or worker process needed.
+    eager_execution: bool = False
+
 
 settings = Settings()
 # print(ROOT_DIR)

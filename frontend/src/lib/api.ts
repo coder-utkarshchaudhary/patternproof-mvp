@@ -76,3 +76,35 @@ export function getReport(auditId: number): Promise<Report> {
 export function reportPdfUrl(auditId: number): string {
   return `${API_BASE}/api/audits/${auditId}/report/pdf`;
 }
+
+// ── Jobs (key-based orchestration) ──────────────────────────────────────────
+
+export interface JobCreate {
+  job_key: string;
+  url: string;
+  status: "processing";
+  created_at: string;
+}
+
+export interface JobStatus {
+  job_key: string;
+  url: string;
+  status: "processing" | "done" | "failed";
+  progress_message: string | null;
+  error_message: string | null;
+  summary_md: string;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export function createJob(url: string): Promise<JobCreate> {
+  return apiFetch("/api/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+}
+
+export function getJobStatus(key: string): Promise<JobStatus> {
+  return apiFetch(`/api/jobs/${key}`);
+}

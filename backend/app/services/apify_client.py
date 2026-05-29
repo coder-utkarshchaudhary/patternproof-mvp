@@ -34,8 +34,9 @@ class CrawlError(RuntimeError):
 def _build_actor_input(start_url: str) -> dict[str, Any]:
     return {
         "startUrls": [{"url": start_url}],
-        "maxCrawlPages": settings.crawl_max_pages,
-        "maxCrawlDepth": settings.crawl_max_depth,
+        # Phase 1: single-page static analysis only — no link following.
+        "maxCrawlPages": 1,
+        "maxCrawlDepth": 0,
         # Compliance: obey the site's robots.txt.
         "respectRobotsTxtFile": True,
         # Use a real browser so we get rendered HTML + screenshots.
